@@ -14,6 +14,20 @@ function resolvePath(pathname: string): string {
 module.exports = function(env: StringObject = {}) {
   const isProduction = env.mode === "production";
   const publicPath = "/";
+  let cdnUrls;
+  if(isProduction) {
+    cdnUrls = [
+      "https://cdn.bootcdn.net/ajax/libs/vue/3.2.45/vue.runtime.global.prod.min.js",
+      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.prod.min.js",
+      "https://cdn.bootcdn.net/ajax/libs/vuex/4.1.0/vuex.global.prod.min.js"
+    ]
+  } else {
+    cdnUrls = [
+      "https://cdn.bootcdn.net/ajax/libs/vue/3.2.45/vue.runtime.global.js",
+      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.js",
+      "https://cdn.bootcdn.net/ajax/libs/vuex/4.1.0/vuex.global.js"
+    ]
+  }
   return {
     mode: env.mode || "production",
     target: [ "web", "es5" ],
@@ -25,6 +39,9 @@ module.exports = function(env: StringObject = {}) {
       },
       extensions: [ ".vue", ".json", ".js", ".ts", ".tsx" ]
     },
+    externals: {
+      "vue": "Vue"
+    },
     output: {
       clean: true,
       publicPath,
@@ -33,7 +50,7 @@ module.exports = function(env: StringObject = {}) {
       chunkFilename: "js/[name].[contenthash].chunk.js"
     },
     devServer: {
-      open: true,
+      // open: true,
       port: 8080,
       compress: true,
       static: {
@@ -90,7 +107,7 @@ module.exports = function(env: StringObject = {}) {
             chunks: "initial"
           },
           commons: {
-            name: "chunk-commons",
+            name: "commons",
             minChunks: 2,
             priority: -10,
             chunks: "initial",
@@ -103,11 +120,11 @@ module.exports = function(env: StringObject = {}) {
     plugins: [
       new WebpackBar(),
       new VueLoaderPlugin(),
-      new WebpackDefinePlugin({
-        __VUE_OPTIONS_API__: true,
-        __VUE_PROD_DEVTOOLS__: false,
-        "process.env": JSON.stringify(env)
-      }),
+      // new WebpackDefinePlugin({
+      //   __VUE_OPTIONS_API__: true,
+      //   __VUE_PROD_DEVTOOLS__: false,
+      //   "process.env": JSON.stringify(env)
+      // }),
       new MiniCssExtractPlugin({
         filename: "css/[name].[contenthash].css"
       }),
@@ -115,6 +132,7 @@ module.exports = function(env: StringObject = {}) {
         template: resolvePath("./public/index.html"),
         inject: "body",
         scriptLoading: "blocking",
+        cdnUrls: cdnUrls
       })
     ],
     stats: {

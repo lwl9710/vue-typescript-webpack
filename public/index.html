@@ -8,5 +8,8 @@
 </head>
 <body>
   <div id="app"></div>
+  <% for(var url of htmlWebpackPlugin.options.cdnUrls){ %>
+    <script type="text/javascript" src="<%= url %>"></script>
+  <% } %>
 </body>
 </html>
