@@ -2,7 +2,8 @@
 const Path = require("path");
 const WebpackBar = require("webpackbar");
 const { VueLoaderPlugin } = require("vue-loader");
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const PostcssOptions = require("./postcss.config");
 const { DefinePlugin: WebpackDefinePlugin } = require("webpack");
@@ -11,27 +12,27 @@ function resolvePath(pathname: string): string {
   return Path.resolve(__dirname, pathname);
 }
 
+const templateFilePath = resolvePath("public/index.html");
+
 module.exports = function(env: StringObject = {}) {
   const isProduction = env.mode === "production";
-  const publicPath = "/";
+  const publicPath = "./";
   let cdnUrls;
   if(isProduction) {
     cdnUrls = [
       "https://cdn.bootcdn.net/ajax/libs/vue/3.2.45/vue.runtime.global.prod.min.js",
-      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.prod.min.js",
-      "https://cdn.bootcdn.net/ajax/libs/vuex/4.1.0/vuex.global.prod.min.js"
+      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.prod.min.js"
     ]
   } else {
     cdnUrls = [
       "https://cdn.bootcdn.net/ajax/libs/vue/3.2.45/vue.runtime.global.js",
-      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.js",
-      "https://cdn.bootcdn.net/ajax/libs/vuex/4.1.0/vuex.global.js"
+      "https://cdn.bootcdn.net/ajax/libs/vue-router/4.1.6/vue-router.global.js"
     ]
   }
   return {
     mode: env.mode || "production",
     target: [ "web", "es5" ],
-    devtool: isProduction ? "inline-source-map" : false,
+    devtool: isProduction ? false : "inline-source-map",
     entry: resolvePath("./src/main.ts"),
     resolve: {
       alias: {
@@ -40,7 +41,8 @@ module.exports = function(env: StringObject = {}) {
       extensions: [ ".vue", ".json", ".js", ".ts", ".tsx" ]
     },
     externals: {
-      "vue": "Vue"
+      "vue": "Vue",
+      "vue-router": "VueRouter"
     },
     output: {
       clean: true,
@@ -50,11 +52,11 @@ module.exports = function(env: StringObject = {}) {
       chunkFilename: "js/[name].[contenthash].chunk.js"
     },
     devServer: {
-      // open: true,
+      open: true,
       port: 8080,
       compress: true,
-      static: {
-        directory: resolvePath("public")
+      devMiddleware: {
+        publicPath: "/"
       }
     },
     module: {
@@ -110,21 +112,20 @@ module.exports = function(env: StringObject = {}) {
             name: "commons",
             minChunks: 2,
             priority: -10,
-            chunks: "initial",
+            chunks: "async",
             reuseExistingChunk: true
           }
         }
-
       }
     },
     plugins: [
       new WebpackBar(),
       new VueLoaderPlugin(),
-      // new WebpackDefinePlugin({
-      //   __VUE_OPTIONS_API__: true,
-      //   __VUE_PROD_DEVTOOLS__: false,
-      //   "process.env": JSON.stringify(env)
-      // }),
+      new WebpackDefinePlugin({
+        __VUE_OPTIONS_API__: true,
+        __VUE_PROD_DEVTOOLS__: false,
+        "process.env": JSON.stringify(env)
+      }),
       new MiniCssExtractPlugin({
         filename: "css/[name].[contenthash].css"
       }),
@@ -133,6 +134,15 @@ module.exports = function(env: StringObject = {}) {
         inject: "body",
         scriptLoading: "blocking",
         cdnUrls: cdnUrls
+      }),
+      new CopyWebpackPlugin({
+        patterns: [{
+          from: resolvePath("public"),
+          to: resolvePath("dist"),
+          filter: (resourcePath: string) => {
+            return !resourcePath.endsWith("/public/index.html");
+          }
+        }]
       })
     ],
     stats: {
